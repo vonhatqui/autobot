@@ -1,20 +1,26 @@
 name: Build-Dylib
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+on: [push, workflow_dispatch]
 
 jobs:
   build:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Theos
-        run: |
-          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+        uses: apple-actions/import-codesign-certs@v1
+        continue-on-error: true # Bỏ qua bước cert nếu không có
 
-      - name: Build dylib
+      - name: Install Theos & SDK
+        run: |
+          git clone --recursive https://github.com/theos/theos.git ~/theos
+          curl -LO https://github.com/theos/sdks/archive/master.zip
+          unzip master.zip
+          mv sdks-master/* ~/theos/sdks
+          echo "THEOS=~/theos" >> $GITHUB_ENV
+
+      - name: Build Dylib
         run: |
           export THEOS=~/theos
           make
@@ -22,5 +28,6 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Vncheat-Result
+          name: Vncheat-Dylib
           path: .theos/obj/*.dylib
+
