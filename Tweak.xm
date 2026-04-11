@@ -1,6 +1,6 @@
 #import <UIKit/UIKit.h>
 
-#define PANDA_API_KEY @"API_CỦA_ĐẠI_CA"
+#define PANDA_API_KEY @"6d8a255d-9b64-43eb-89f4-a670c5953ab6"
 
 @interface VncheatHub : UIView
 @property (nonatomic, strong) UITextField *keyField;
