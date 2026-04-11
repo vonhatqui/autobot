@@ -1,8 +1,8 @@
 #import <UIKit/UIKit.h>
 
-// --- CẤU HÌNH DASHBOARD PANDA ---
-#define PANDA_API_KEY @"e3b3864d-edb9-4fdb-b451-662993b95815" // Lấy ở mục API Settings trên web
-#define SERVICE_ID @"vncheatff"          // Phải trùng 100% với Identifier trên web
+// --- CẤU HÌNH DASHBOARD NEW PANDA ---
+#define PANDA_API_KEY @"57e43370-32ca-491a-83d1-af6a12227e25" // Lấy tại mục Developer Settings trên web new.panda
+#define SERVICE_ID @"vncheatff"                   // Khớp 100% với Identifier trên web
 
 @interface VncheatFF : UIView
 @property (nonatomic, strong) UITextField *kField;
@@ -56,7 +56,7 @@
         copy.textAlignment = NSTextAlignmentCenter;
         [self addSubview:copy];
 
-        // --- LỚP TRẠNG THÁI ---
+        // --- LỚP TRẠNG THÁI (Hiển thị ✅ hoặc ❌) ---
         self.statusLabel = [[UILabel alloc] initWithFrame:self.bounds];
         self.statusLabel.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.98];
         self.statusLabel.layer.cornerRadius = 15;
@@ -76,8 +76,11 @@
     [self.bBtn setTitle:@"ĐANG QUÉT..." forState:UIControlStateNormal];
     self.bBtn.enabled = NO;
 
-    // LINK API CHUẨN KHỚP VỚI IDENTIFIER vncheatff
-    NSString *apiPath = [NSString stringWithFormat:@"https://api.pandadevelopment.net/v1/verify?key=%@&service=%@&api_key=%@", k, SERVICE_ID, PANDA_API_KEY];
+    // LINK API CHUẨN CHO BẢN NEW.PANDADEVELOPMENT.NET
+    NSString *apiPath = [NSString stringWithFormat:@"https://api.pandadevelopment.net/v1/verify?key=%@&service=%@&api_key=%@", 
+                        [k stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]], 
+                        SERVICE_ID, 
+                        PANDA_API_KEY];
     
     NSURL *u = [NSURL URLWithString:apiPath];
     [[[NSURLSession sharedSession] dataTaskWithURL:u completionHandler:^(NSData *d, NSURLResponse *r, NSError *e) {
@@ -115,7 +118,8 @@
 @end
 
 %ctor {
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(10 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+    // ĐÃ CHỈNH LẠI: Hiện Menu sau đúng 3 giây từ khi vào Game
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         UIWindow *w = nil;
         if (@available(iOS 13.0, *)) {
             for (UIWindowScene* s in [UIApplication sharedApplication].connectedScenes) {
@@ -134,6 +138,7 @@
         }
     });
 }
+
 
 
 
