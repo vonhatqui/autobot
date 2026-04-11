@@ -13,12 +13,12 @@ jobs:
       - name: Setup Theos
         run: |
           bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
-          
+
       - name: Build dylib
         run: |
           export THEOS=~/theos
           make
-          
+
       - name: Upload
         uses: actions/upload-artifact@v3
         with:
