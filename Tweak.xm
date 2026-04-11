@@ -9,12 +9,18 @@
 @implementation VncheatManager
 + (void)show {
     dispatch_async(dispatch_get_main_queue(), ^{
-        UIViewController *root = [UIApplication sharedApplication].keyWindow.rootViewController;
-        if (!root) return;
+        UIWindow *window = [UIApplication sharedApplication].keyWindow;
+        if (!window || !window.rootViewController) return;
 
-        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"VNCHEAT" message:@"NHẬP KEY" preferredStyle:1];
+        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"VNCHEAT" 
+                                    message:@"NHẬP KEY PANDA" 
+                                    preferredStyle:UIAlertControllerStyleAlert];
+
         [alert addTextFieldWithConfigurationHandler:nil];
-        [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:0 handler:^(UIAlertAction *action) {
+
+        UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK" 
+                                   style:UIAlertActionStyleDefault 
+                                   handler:^(UIAlertAction *action) {
             NSString *k = alert.textFields.firstObject.text;
             NSString *u = [NSString stringWithFormat:@"https://api.pandakey.net/v1/verify?key=%@&api_key=%@", k, PANDA_API_KEY];
             [[[NSURLSession sharedSession] dataTaskWithURL:[NSURL URLWithString:u] completionHandler:^(NSData *d, NSURLResponse *r, NSError *e) {
@@ -23,8 +29,10 @@
                     if (![j[@"status"] isEqualToString:@"success"]) exit(0);
                 }
             }] resume];
-        }]];
-        [root presentViewController:alert animated:YES completion:nil];
+        }];
+
+        [alert addAction:okAction];
+        [window.rootViewController presentViewController:alert animated:YES completion:nil];
     });
 }
 @end
@@ -34,4 +42,5 @@
         [VncheatManager show];
     });
 }
+
 
