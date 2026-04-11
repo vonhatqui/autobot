@@ -8,10 +8,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Theos
-        uses: apple-actions/import-codesign-certs@v1
-        continue-on-error: true # Bỏ qua bước cert nếu không có
-
       - name: Install Theos & SDK
         run: |
           git clone --recursive https://github.com/theos/theos.git ~/theos
@@ -23,12 +19,10 @@ jobs:
       - name: Build Dylib
         run: |
           export THEOS=~/theos
-          make
+          make FINALPACKAGE=1
 
-            - name: Upload
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: Vncheat-Result
           path: .theos/obj/Vncheat.dylib
-
-
