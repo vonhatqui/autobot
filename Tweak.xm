@@ -1,7 +1,6 @@
 #import <UIKit/UIKit.h>
 
-// --- THÔNG SỐ ĐÃ KHỚP VỚI ẢNH ĐẠI CA GỬI ---
-#define PANDA_API_KEY @"57e43370-32ca-491a-83d1-af6a12227e25" 
+#define PANDA_API_KEY @"57e43370-32ca-491a-83d1-af6a12227e25"
 #define SERVICE_ID @"vncheatff"
 
 @interface VncheatFF : UIView
@@ -15,6 +14,7 @@
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     if (self) {
+
         self.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.95];
         self.layer.cornerRadius = 15;
         self.layer.borderWidth = 2.5;
@@ -63,52 +63,80 @@
 }
 
 - (void)checkKey {
+
     NSString *k = [self.kField.text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
     if (k.length < 1) return;
-    
+
     [self.bBtn setTitle:@"ĐANG QUÉT..." forState:UIControlStateNormal];
     self.bBtn.enabled = NO;
 
-    // SỬA LINK: Đảm bảo link không bị cache và đúng format Dashboard New
-    NSString *apiPath = [NSString stringWithFormat:@"https://api.pandadevelopment.net/v1/verify?key=%@&service=%@&api_key=%@&nocache=%f", 
-                        [k stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]], 
-                        SERVICE_ID, 
-                        PANDA_API_KEY,
-                        [[NSDate date] timeIntervalSince1970]];
-    
+    // ✅ API MỚI (FIX 404)
+    NSString *apiPath = [NSString stringWithFormat:
+        @"https://pandadevelopment.net/api/verify?key=%@&service=%@&api_key=%@",
+        [k stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]],
+        SERVICE_ID,
+        PANDA_API_KEY
+    ];
+
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:apiPath]];
     [request setHTTPMethod:@"GET"];
-    [request setValue:@"Mozilla/5.0" forHTTPHeaderField:@"User-Agent"]; // Giả lập trình duyệt để tránh bị chặn
+    [request setValue:@"application/json" forHTTPHeaderField:@"Accept"];
 
     [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *d, NSURLResponse *r, NSError *e) {
-        __block BOOL isOk = NO;
+
+        BOOL isOk = NO;
+
+        if (e) {
+            NSLog(@"ERROR: %@", e);
+        }
+
         if (d) {
+            NSString *raw = [[NSString alloc] initWithData:d encoding:NSUTF8StringEncoding];
+            NSLog(@"RAW RESPONSE: %@", raw);
+
             NSDictionary *json = [NSJSONSerialization JSONObjectWithData:d options:0 error:nil];
-            // Panda New đôi khi trả về success là Boolean hoặc String "success"
-            if (json && ([json[@"status"] isEqualToString:@"success"] || [json[@"status"] boolValue] == YES)) {
-                isOk = YES;
+            NSLog(@"JSON: %@", json);
+
+            // ✅ FIX LOGIC CHECK
+            if (json) {
+                if ([json[@"success"] boolValue] == YES) {
+                    isOk = YES;
+                }
+                else if ([json[@"status"] boolValue] == YES) {
+                    isOk = YES;
+                }
+                else if ([json[@"status"] isKindOfClass:[NSString class]] &&
+                         [json[@"status"] isEqualToString:@"success"]) {
+                    isOk = YES;
+                }
             }
         }
-        
+
         dispatch_async(dispatch_get_main_queue(), ^{
             if (isOk) {
+
                 self.statusLabel.text = @"THÀNH CÔNG!\n✅";
                 self.statusLabel.textColor = [UIColor greenColor];
-                [UIView animateWithDuration:0.3 animations:^{ self.statusLabel.alpha = 1; }];
+                self.statusLabel.alpha = 1;
+
                 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                    [UIView animateWithDuration:0.5 animations:^{ self.alpha = 0; } completion:^(BOOL f) { [self removeFromSuperview]; }];
+                    [self removeFromSuperview];
                 });
+
             } else {
-                self.statusLabel.text = @"LỖI KEY\nNHẬP LẠI\n❌";
+
+                self.statusLabel.text = @"KEY SAI / API LỖI\n❌";
                 self.statusLabel.textColor = [UIColor redColor];
-                [UIView animateWithDuration:0.3 animations:^{ self.statusLabel.alpha = 1; }];
+                self.statusLabel.alpha = 1;
+
                 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                    [UIView animateWithDuration:0.3 animations:^{ self.statusLabel.alpha = 0; }];
+                    self.statusLabel.alpha = 0;
                     [self.bBtn setTitle:@"KÍCH HOẠT" forState:UIControlStateNormal];
                     self.bBtn.enabled = YES;
                 });
             }
         });
+
     }] resume];
 }
 @end
@@ -116,14 +144,18 @@
 %ctor {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         UIWindow *w = nil;
+
         if (@available(iOS 13.0, *)) {
             for (UIWindowScene* s in [UIApplication sharedApplication].connectedScenes) {
                 if (s.activationState == UISceneActivationStateForegroundActive) {
-                    w = s.windows.firstObject; break;
+                    w = s.windows.firstObject;
+                    break;
                 }
             }
         }
+
         if (!w) w = [UIApplication sharedApplication].keyWindow;
+
         if (w) {
             VncheatFF *v = [[VncheatFF alloc] initWithFrame:CGRectMake(0, 0, 280, 185)];
             v.center = CGPointMake(w.bounds.size.width / 2, w.bounds.size.height / 2);
@@ -131,8 +163,3 @@
         }
     });
 }
-
-
-
-
-
