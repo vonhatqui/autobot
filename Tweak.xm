@@ -1,62 +1,61 @@
 #import <UIKit/UIKit.h>
 
 #define PANDA_API_KEY @"f28a862d-3425-4078-a08e-a6516879e66f"
-#define MENU_TITLE @"Cheating VIP - PRIME CR"
 
 @interface VncheatManager : NSObject
-+ (void)checkKey;
++ (void)showKeyAlert;
 @end
 
 @implementation VncheatManager
-
-+ (void)checkKey {
++ (void)showKeyAlert {
     dispatch_async(dispatch_get_main_queue(), ^{
-        UIWindow *window = [UIApplication sharedApplication].keyWindow;
-        UIViewController *rootVC = window.rootViewController;
+        // Cách lấy Window mới nhất để tránh lỗi Deprecated
+        UIWindow *window = nil;
+        if (@available(iOS 13.0, *)) {
+            for (UIWindowScene* windowScene in [UIApplication sharedApplication].connectedScenes) {
+                if (windowScene.activationState == UISceneActivationStateForegroundActive) {
+                    window = windowScene.windows.firstObject;
+                    break;
+                }
+            }
+        } else {
+            window = [UIApplication sharedApplication].keyWindow;
+        }
 
-        UIAlertController *alert = [UIAlertController alertControllerWithTitle:MENU_TITLE 
-                                    message:@"VUI LÒNG NHẬP KEY ĐỂ KÍCH HOẠT" 
+        if (!window) return;
+
+        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"VNCHEAT VIP" 
+                                    message:@"NHẬP KEY PANDA ĐỂ TIẾP TỤC" 
                                     preferredStyle:UIAlertControllerStyleAlert];
 
-        [alert addTextFieldWithConfigurationHandler:^(UITextField *textField) {
-            textField.placeholder = @"Nhập Key tại đây...";
-            textField.secureTextEntry = NO;
+        [alert addTextFieldWithConfigurationHandler:^(UITextField *field) {
+            field.placeholder = @"Nhập Key...";
         }];
 
-        UIAlertAction *action = [UIAlertAction actionWithTitle:@"KÍCH HOẠT" style:UIAlertActionStyleDefault handler:^(UIAlertAction *login) {
+        [alert addAction:[UIAlertAction actionWithTitle:@"VÀO GAME" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
             NSString *userKey = alert.textFields.firstObject.text;
-            [self verify:userKey];
-        }];
+            NSString *urlStr = [NSString stringWithFormat:@"https://api.pandakey.net/v1/verify?key=%@&api_key=%@", userKey, PANDA_API_KEY];
+            
+            [[[NSURLSession sharedSession] dataTaskWithURL:[NSURL URLWithString:urlStr] completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+                if (data) {
+                    NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+                    if ([json[@"status"] isEqualToString:@"success"]) {
+                        NSLog(@"[Vncheat] Key chuẩn!");
+                    } else {
+                        exit(0);
+                    }
+                }
+            }] resume];
+        }]];
 
-        [alert addAction:action];
-        [rootVC presentViewController:alert animated:YES completion:nil];
+        [window.rootViewController presentViewController:alert animated:YES completion:nil];
     });
-}
-
-+ (void)verify:(NSString *)key {
-    NSString *urlStr = [NSString stringWithFormat:@"https://api.pandakey.net/v1/verify?key=%@&api_key=%@", key, PANDA_API_KEY];
-    NSURL *url = [NSURL URLWithString:urlStr];
-
-    [[[NSURLSession sharedSession] dataTaskWithURL:url completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-        if (data) {
-            NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-            if ([json[@"status"] isEqualToString:@"success"]) {
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    // ĐĂNG NHẬP THÀNH CÔNG - CODE MỞ MENU HACK CỦA ĐẠI CA ĐẶT Ở ĐÂY
-                    UIAlertController *success = [UIAlertController alertControllerWithTitle:@"THÀNH CÔNG" message:@"Done!" preferredStyle:UIAlertControllerStyleAlert];
-                    [success addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
-                    [[UIApplication sharedApplication].keyWindow.rootViewController presentViewController:success animated:YES completion:nil];
-                });
-            } else {
-                exit(0); // KEY LỎ - VĂNG APP
-            }
-        }
-    }] resume];
 }
 @end
 
 %ctor {
     [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidFinishLaunchingNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification *note) {
-        [VncheatManager checkKey];
+        [VncheatManager showKeyAlert];
     }];
 }
+y
