@@ -25,9 +25,10 @@ jobs:
           export THEOS=~/theos
           make
 
-      - name: Upload
+            - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Vncheat-Dylib
-          path: .theos/obj/*.dylib
+          name: Vncheat-Result
+          path: .theos/obj/Vncheat.dylib
+
 
