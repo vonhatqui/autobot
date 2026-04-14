@@ -10,3 +10,4 @@ Vncheat_FRAMEWORKS = UIKit Foundation
 Vncheat_CFLAGS = -fobjc-arc -Wno-deprecated-declarations
 
 include $(THEOS_MAKE_PATH)/tweak.mk
+$(TWEAK_NAME)_FRAMEWORKS = UIKit QuartzCore.
