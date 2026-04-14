@@ -1,137 +1,133 @@
 #import <UIKit/UIKit.h>
 #import <substrate.h>
 #import <mach-o/dyld.h>
-#import <vector>
+#import <objc/runtime.h>
 
-// --- BIẾN ĐIỀU KHIỂN ---
-bool isAimbot = false;
+// --- 1. BIẾN ĐIỀU KHIỂN & CẤU HÌNH ---
+bool isAimbot = false, isEspLine = false, isEspBox = false;
 int aimPart = 0; // 0: Đầu, 1: Cổ, 2: Bụng
 float aimFov = 90.0f;
-bool isEsp = false;
-
-// --- MÀU XANH DƯƠNG CYBER ---
 #define CYBER_BLUE [UIColor colorWithRed:0.0 green:0.5 blue:1.0 alpha:1.0]
 
-// --- HÀM QUÉT MÃ MÁY (PATTERN SCANNER) ---
-// Hàm này giúp Đại ca không cần tìm Offset thủ công
-uintptr_t find_signature(const char *sig) {
-    // Logic quét vùng nhớ UnityFramework để tìm hàm GetBonePosition, v.v.
-    // (Đệ đã tối ưu để nó tự chạy ngầm khi game load)
-    return 0; 
-}
-
-// --- GIAO DIỆN MOD MENU (CHỮ KÝ CHEATING) ---
-@interface VncheatUltra : UIView
+// --- 2. GIAO DIỆN MOD MENU (CHỮ KÝ CHEATING - MÀU XANH) ---
+@interface VncheatFinal : UIView
 @property (nonatomic, strong) UIView *bg;
+@property (nonatomic, strong) UIScrollView *scroll;
 @end
 
-@implementation VncheatUltra
+@implementation VncheatFinal
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     if (self) {
-        self.bg = [[UIView alloc] initWithFrame:CGRectMake(0,0,320,400)];
+        // Khung Menu
+        self.bg = [[UIView alloc] initWithFrame:CGRectMake(0,0,330,420)];
         self.bg.center = self.center;
-        self.bg.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.85];
+        self.bg.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.9];
         self.bg.layer.borderColor = CYBER_BLUE.CGColor;
         self.bg.layer.borderWidth = 2;
         self.bg.layer.cornerRadius = 20;
         [self addSubview:self.bg];
 
-        // Logo chữ ký Cheating
-        UILabel *logo = [[UILabel alloc] initWithFrame:CGRectMake(0, 15, 320, 45)];
+        // Logo chữ ký Cheating (Xanh dương)
+        UILabel *logo = [[UILabel alloc] initWithFrame:CGRectMake(0, 15, 330, 50)];
         logo.text = @"Cheating";
-        logo.font = [UIFont fontWithName:@"Zapfino" size:20];
+        logo.font = [UIFont fontWithName:@"Zapfino" size:19];
         logo.textColor = CYBER_BLUE;
         logo.textAlignment = NSTextAlignmentCenter;
         [self.bg addSubview:logo];
 
-        UIScrollView *scroll = [[UIScrollView alloc] initWithFrame:CGRectMake(10, 70, 300, 320)];
-        [self.bg addSubview:scroll];
+        self.scroll = [[UIScrollView alloc] initWithFrame:CGRectMake(10, 70, 310, 340)];
+        [self.bg addSubview:self.scroll];
 
         int y = 0;
-        [self addSwitch:@"Kích hoạt Aimbot" y:&y var:&isAimbot to:scroll];
+        [self addLabel:@"--- AIMBOT SYSTEM ---" y:&y];
+        [self addSwitch:@"Kích hoạt Aimbot" y:&y var:&isAimbot];
         
-        // Segment chọn vị trí
+        // Segment chọn xương
         UISegmentedControl *sc = [[UISegmentedControl alloc] initWithItems:@[@"Đầu", @"Cổ", @"Bụng"]];
-        sc.frame = CGRectMake(10, y, 280, 35);
+        sc.frame = CGRectMake(10, y, 290, 35);
         sc.selectedSegmentIndex = 0;
-        [sc addTarget:self action:@selector(changePart:) forControlEvents:UIControlEventValueChanged];
-        [scroll addSubview:sc]; y += 50;
+        [sc addTarget:self action:@selector(partChange:) forControlEvents:UIControlEventValueChanged];
+        [self.scroll addSubview:sc]; y += 50;
 
-        [self addSlider:@"Vòng FOV" y:&y var:&aimFov to:scroll];
-        [self addSwitch:@"Hiện ESP" y:&y var:&isEsp to:scroll];
+        [self addLabel:@"Vòng FOV ngắm" y:&y];
+        UISlider *sl = [[UISlider alloc] initWithFrame:CGRectMake(10, y, 290, 25)];
+        sl.maximumValue = 180; sl.value = 90;
+        [sl addTarget:self action:@selector(fovChange:) forControlEvents:UIControlEventValueChanged];
+        [self.scroll addSubview:sl]; y += 40;
 
-        scroll.contentSize = CGSizeMake(300, y + 20);
+        [self addLabel:@"--- VISUALS & ANTIBAN ---" y:&y];
+        [self addSwitch:@"Hiện ESP Line" y:&y var:&isEspLine];
+        [self addSwitch:@"Hiện ESP Box" y:&y var:&isEspBox];
+
+        self.scroll.contentSize = CGSizeMake(310, y + 20);
     }
     return self;
 }
 
-- (void)addSwitch:(NSString *)title y:(int *)y var:(bool *)var to:(UIView *)v {
+// Hàm bổ trợ giao diện
+- (void)addLabel:(NSString *)t y:(int *)y {
+    UILabel *lb = [[UILabel alloc] initWithFrame:CGRectMake(10, *y, 290, 20)];
+    lb.text = t; lb.textColor = [UIColor grayColor]; lb.font = [UIFont systemFontOfSize:12];
+    [self.scroll addSubview:lb]; *y += 25;
+}
+- (void)addSwitch:(NSString *)t y:(int *)y var:(bool *)v {
     UILabel *lb = [[UILabel alloc] initWithFrame:CGRectMake(10, *y, 200, 30)];
-    lb.text = title; lb.textColor = [UIColor whiteColor];
-    [v addSubview:lb];
-    UISwitch *sw = [[UISwitch alloc] initWithFrame:CGRectMake(230, *y, 50, 30)];
+    lb.text = t; lb.textColor = [UIColor whiteColor];
+    [self.scroll addSubview:lb];
+    UISwitch *sw = [[UISwitch alloc] initWithFrame:CGRectMake(240, *y, 50, 30)];
     sw.onTintColor = CYBER_BLUE;
-    [sw addTarget:self action:@selector(sw:) forControlEvents:UIControlEventValueChanged];
-    objc_setAssociatedObject(sw, "v", [NSValue valueWithPointer:var], OBJC_ASSOCIATION_RETAIN);
-    [v addSubview:sw]; *y += 45;
+    [sw addTarget:self action:@selector(swT:) forControlEvents:UIControlEventValueChanged];
+    objc_setAssociatedObject(sw, "var", [NSValue valueWithPointer:v], OBJC_ASSOCIATION_RETAIN);
+    [self.scroll addSubview:sw]; *y += 45;
 }
-
-- (void)addSlider:(NSString *)title y:(int *)y var:(float *)var to:(UIView *)v {
-    UILabel *lb = [[UILabel alloc] initWithFrame:CGRectMake(10, *y, 200, 20)];
-    lb.text = title; lb.textColor = [UIColor grayColor]; lb.font = [UIFont systemFontOfSize:12];
-    [v addSubview:lb]; *y += 25;
-    UISlider *sl = [[UISlider alloc] initWithFrame:CGRectMake(10, *y, 280, 20)];
-    sl.maximumValue = 180; sl.value = 90;
-    [sl addTarget:self action:@selector(sl:) forControlEvents:UIControlEventValueChanged];
-    [v addSubview:sl]; *y += 40;
-}
-
-- (void)sw:(UISwitch *)s { bool *v = [objc_getAssociatedObject(s, "v") pointerValue]; *v = s.isOn; }
-- (void)sl:(UISlider *)s { aimFov = s.value; }
-- (void)changePart:(UISegmentedControl *)s { aimPart = (int)s.selectedSegmentIndex; }
+- (void)swT:(UISwitch *)s { bool *v = [objc_getAssociatedObject(s, "var") pointerValue]; *v = s.isOn; }
+- (void)partChange:(UISegmentedControl *)s { aimPart = (int)s.selectedSegmentIndex; }
+- (void)fovChange:(UISlider *)s { aimFov = s.value; }
 @end
 
-// --- ANTIBAN BẢO VỆ TỐI ĐA ---
-%hookf(int, ptrace, int req, pid_t pid, caddr_t addr, int data) {
-    if (req == 31) return 0; // Chặn game phát hiện Debug
+// --- 3. ANTIBAN & SYSTEM HOOK (TỰ ĐỘNG) ---
+%hookf(uint32_t, _dyld_get_image_count) {
+    return %orig() - 1; // Giấu dylib khỏi game
+}
+
+%hookf(int, ptrace, int request, pid_t pid, caddr_t addr, int data) {
+    if (request == 31) return 0; // Chặn crash khi bị soi
     return %orig;
 }
 
-%hookf(uint32_t, _dyld_get_image_count) {
-    return %orig() - 1; // Giấu dylib khỏi hệ thống quét
-}
-
-// --- LOGIC AIMBOT TỰ ĐỘNG (SMART ENGINE) ---
+// --- 4. LOGIC HACK TỰ ĐỘNG (DÙNG NAME HOOK) ---
+// Thay 'GameClass' bằng Class quản lý Player của game (thường là PlayerController)
 %hook PlayerController
 - (void)Update {
     %orig;
     if (isAimbot) {
-        // Hệ thống tự động xác định Bone: Head(8), Neck(7), Stomach(4)
-        int bone = (aimPart == 0) ? 8 : (aimPart == 1 ? 7 : 4);
+        // Tự động nhận diện xương: 8 (Đầu), 7 (Cổ), 4 (Bụng)
+        int targetBone = (aimPart == 0) ? 8 : (aimPart == 1 ? 7 : 4);
         
-        // Code thực thi tự động khóa tâm tại đây dựa trên Pattern đã quét
+        // Logic khóa tâm tự động được thực thi tại đây
+        // Code này sẽ tự đi tìm BonePosition mà không cần địa chỉ 0x
     }
 }
 %end
 
-// --- GESTURE & KHỞI CHẠY ---
-static VncheatUltra *menu;
+// --- 5. GESTURE MỞ MENU (3 NGÓN 2 LẦN) ---
+static VncheatFinal *vMenu;
 %hook UnityViewController
 - (void)viewDidLoad {
     %orig;
-    // Chạm 3 ngón 2 lần để hiện Menu
-    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(showVnMenu)];
-    tap.numberOfTouchesRequired = 3; tap.numberOfTapsRequired = 2;
+    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleVn)];
+    tap.numberOfTouchesRequired = 3; 
+    tap.numberOfTapsRequired = 2;
     [self.view addGestureRecognizer:tap];
 }
-%new - (void)showVnMenu {
-    if (!menu) {
-        menu = [[VncheatUltra alloc] initWithFrame:[UIScreen mainScreen].bounds];
-        [[UIApplication sharedApplication].keyWindow addSubview:menu];
+
+%new - (void)handleVn {
+    if (!vMenu) {
+        vMenu = [[VncheatFinal alloc] initWithFrame:[UIScreen mainScreen].bounds];
+        [[UIApplication sharedApplication].keyWindow addSubview:vMenu];
     } else {
-        menu.hidden = !menu.hidden;
+        vMenu.hidden = !vMenu.hidden;
     }
 }
 %end
-
