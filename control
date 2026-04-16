@@ -1,7 +1,0 @@
-Package: com.vncheat.key
-Name: Vncheat
-Depends: mobilesubstrate
-Version: 1.0.0
-Architecture: iphoneos-arm
-Description: Panda Key System cho IPA
-Maintainer: Vncheat_Savage
